@@ -8,13 +8,14 @@ from ppo import PPO
 
 def main():
     # load datasets
-    mazes = np.load('datasets/mazes-10.npy')
-    paths_length = np.load('datasets/paths_length-10.npy')
-    #mazes = mazes[0,:,:]
-    #paths_length = paths_length[0]
+    mazes = np.load('datasets/mazes.npy')
+    paths_length = np.load('datasets/paths_length.npy')
+    mazes = np.expand_dims(mazes[0,:,:],0)
+    paths_length = np.expand_dims(paths_length[0],0)
 
     #agent = Net().to(device)
-    ppo_agent = PPO()
+    #ppo_agent = PPO(load_pretrained=True)
+    ppo_agent = PPO(load_pretrained=False)
 
     # sim = Simulator(mazes[0])
     # sim = Simulator(mazes[314])
@@ -75,7 +76,7 @@ def main():
             #agent.write_reward(tot_reward, final_r)
             if e % EPISODES_PER_UPDATE == 0: # TODO or size of batchdata..
                 ppo_agent.update()
-                ppo_agent.clear_batchdata()  # reset the sampled policy trajectory
+                ppo_agent.clear_batchdata()  # reset the sampled policy trajectories
 
             ppo_agent.write_reward(tot_reward,final_r)
 

@@ -25,4 +25,4 @@ EPISODES_PER_UPDATE = 100
 MODEL_SAVE_FREQ = round(EPISODES / 10)
 EXPERIMENT = 1 #1-5
 
-LOG_DIR = './logs/ppo-exp1'
+LOG_DIR = './logs/ppo-exp' + str(EXPERIMENT)

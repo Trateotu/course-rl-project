@@ -54,11 +54,7 @@ def main():
                 st1 = sim.get_state()
 
                 # Collect batch data
-                ppo_agent.batchdata.is_terminal.append(done)
-                ppo_agent.batchdata.states.append(st)
-                ppo_agent.batchdata.actions.append(a)
-                ppo_agent.batchdata.logprobs.append(logprob)
-                ppo_agent.batchdata.rewards.append(r)
+                ppo_agent.push_batchdata(st,a,logprob,r,done)
 
                 # st1 = np.expand_dims(np.reshape(sim.grid.copy(), -1), 0)
                 tot_reward += r

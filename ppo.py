@@ -27,7 +27,7 @@ class BatchData:  # batchdata collected from policy
 
 class PPO:
     def __init__(self, load_pretrained=False):
-        # extract environment info from maze.... state_dim should be what and action dim should be 4
+        # extract environment info from maze....
         # self.mazesim = mazesim
         self.state_dim = 1  # I guess for 1 grid image?
         self.action_dim = 4  # {0: Down, 1: Up, 2: Right, 3: Left}
@@ -134,6 +134,14 @@ class PPO:
         self.writer.add_scalar('cumulative_reward', r, self.log_idx)
         self.writer.add_scalar('final_reward', r2, self.log_idx)
         self.log_idx += 1
+
+    def push_batchdata(self, st, a, logprob, r, done):
+        # adds a row of trajectory data to self.batchdata
+        self.batchdata.states.append(st)
+        self.batchdata.actions.append(a)
+        self.batchdata.logprobs.append(logprob)
+        self.batchdata.rewards.append(r)
+        self.batchdata.is_terminal.append(done)
 
     def clear_batchdata(self):
         self.batchdata.clear()

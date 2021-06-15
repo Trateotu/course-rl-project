@@ -23,5 +23,6 @@ EPISODES = 10000
 # PPO constants TODO maybe move into PPO class
 EPISODES_PER_UPDATE = 100
 MODEL_SAVE_FREQ = round(EPISODES / 10)
+EXPERIMENT = 1 #1-5
 
 LOG_DIR = './logs/ppo-exp1'

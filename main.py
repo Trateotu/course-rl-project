@@ -80,7 +80,7 @@ def main():
             ppo_agent.write_reward(tot_reward,final_r)
 
             # Save actor critic checkpoints every so often
-            if e % MODEL_SAVE_FREQ == 0:
+            if e % MODEL_SAVE_FREQ == 0 and e > 0:
                 ppo_agent.save_model()
 
             # perform a test of the policy where there is no exploration
@@ -92,8 +92,7 @@ def main():
                 grid_frq = -10 * sim.grid.copy()
 
                 for t in range(T):
-
-                    a = ppo_agent.get_action(st, test=True)
+                    a, _ = ppo_agent.get_action(st, test=True)
                     r, done = sim.step(a)
 
                     st1 = sim.get_state()
@@ -116,36 +115,37 @@ def main():
                 ppo_agent.writer.add_figure("Test path", fig2, int(i * 50 + e / 1000))
 
         # Once trained in a new maze, test the perfrormance in the previous mazes.
-        if i != 0:
-            tot_reward = 0
-            for x, temp_maze in enumerate(mazes[:i]):
+        if EXPERIMENT == 3:
+            if i != 0:
+                tot_reward = 0
+                for x, temp_maze in enumerate(mazes[:i]):
 
-                sim = Simulator(temp_maze, x)
-                T = int(paths_length[x] * 3)
+                    sim = Simulator(temp_maze, x)
+                    T = int(paths_length[x] * 3)
 
-                # sim.reset()
-                st = sim.get_state()
-                # st = np.expand_dims(np.reshape(sim.grid.copy(), -1), 0)
-                tmp_reward = 0
+                    # sim.reset()
+                    st = sim.get_state()
+                    # st = np.expand_dims(np.reshape(sim.grid.copy(), -1), 0)
+                    tmp_reward = 0
 
-                for t in range(T):
+                    for t in range(T):
 
-                    a = ppo_agent.get_action(st, test=True)
-                    r, done = sim.step(a)
+                        a = ppo_agent.get_action(st, test=True)
+                        r, done = sim.step(a)
 
-                    st1 = sim.get_state()
-                    # st1 = np.expand_dims(np.reshape(sim.grid.copy(), -1), 0)
-                    tot_reward += r
-                    tmp_reward += r
+                        st1 = sim.get_state()
+                        # st1 = np.expand_dims(np.reshape(sim.grid.copy(), -1), 0)
+                        tot_reward += r
+                        tmp_reward += r
 
-                    if done:
-                        break
-                    st = st1
+                        if done:
+                            break
+                        st = st1
 
-                print('maze: ' + str(x) + ' reward: ' + str(tmp_reward), end=' ')
-            print()
+                    print('maze: ' + str(x) + ' reward: ' + str(tmp_reward), end=' ')
+                print()
 
-            ppo_agent.writer.add_scalar("Previous mazes average reward", tot_reward / i, int(i))
+                ppo_agent.writer.add_scalar("Previous mazes average reward", tot_reward / i, int(i))
 
         #Q_values_mazes[i] = agent.get_Q_grid(maze)
         #np.save('Q_values_retraining_NO_eps_decay.npy', Q_values_mazes)

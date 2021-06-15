@@ -1,6 +1,7 @@
 """
 Implements PPO-Clip-esk:
 https://spinningup.openai.com/en/latest/_images/math/e62a8971472597f4b014c2da064f636ffe365ba3.svg
+or something along those lines
 """
 from constants import *
 from network import ActorCritic
@@ -24,6 +25,17 @@ class BatchData:  # batchdata collected from policy
         self.lens.clear()
         self.is_terminal.clear()
 
+def calc_rtg(rewards, is_terminal, gamma):
+    # Calculates reward-to-go
+    assert len(rewards) == len(is_terminal)
+    rtgs = []
+    discounted_reward = 0
+    for reward, is_terminal in zip(reversed(rewards), reversed(is_terminal)):
+        if is_terminal:
+            discounted_reward = 0
+        discounted_reward = reward + gamma * discounted_reward
+        rtgs.insert(0, discounted_reward)
+    return rtgs
 
 class PPO:
     def __init__(self, load_pretrained=False):
@@ -67,15 +79,7 @@ class PPO:
         """
             Updates the actor-critic networks for current batch data
         """
-        rewards = []
-        discounted_reward = 0
-        for reward, is_terminal in zip(reversed(self.batchdata.rewards), reversed(self.batchdata.is_terminal)):
-            if is_terminal:
-                discounted_reward = 0
-            discounted_reward = reward + self.gamma * discounted_reward
-            rewards.insert(0, discounted_reward)
-
-        rtgs = self.to_tensor(rewards)  # reward-to-go
+        rtgs = self.to_tensor(calc_rtg(self.batchdata.rewards,self.batchdata.is_terminal,self.gamma))  # reward-to-go
         # Normalize rewards
         rtgs = (rtgs - rtgs.mean()) / (rtgs.std() + 1e-5)
 

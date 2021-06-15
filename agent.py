@@ -281,6 +281,7 @@ class Net(nn.Module):
                     # grid[i][j] = torch.max(q).detach().cpu().item()
         fig = plt.figure()
         plt.imshow(policy_grid)
+        #plt.show()
         self.writer.add_figure('q_vals', fig, self.log_idx / self.update_target_episodes * 1.)
         # frq = np.zeros((15, 15))
         # for m in range(len(self.D.memory)):

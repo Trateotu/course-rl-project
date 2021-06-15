@@ -18,6 +18,10 @@ GRID_SIZE = 22  # FIXED
 
 RWD_DEATH = 0
 
-EPISODES = 50000
+EPISODES = 10000
 
-LOG_DIR = './logs/exp5'
+# PPO constants TODO maybe move into PPO class
+EPISODES_PER_UPDATE = 100
+MODEL_SAVE_FREQ = round(EPISODES / 10)
+
+LOG_DIR = './logs/ppo-exp1'

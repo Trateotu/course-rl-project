@@ -10,8 +10,10 @@ def main():
     # load datasets
     mazes = np.load('datasets/mazes.npy')
     paths_length = np.load('datasets/paths_length.npy')
-    mazes = np.expand_dims(mazes[0,:,:],0)
-    paths_length = np.expand_dims(paths_length[0],0)
+
+    if EXPERIMENT == 1: # only do the first maze
+        mazes = np.expand_dims(mazes[0,:,:],0)
+        paths_length = np.expand_dims(paths_length[0],0)
 
     #agent = Net().to(device)
     #ppo_agent = PPO(load_pretrained=True)

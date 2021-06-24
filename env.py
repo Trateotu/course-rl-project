@@ -27,10 +27,11 @@ class Simulator:
         self.grid.shape[0] - 2, self.grid.shape[1] - 2)     # bcs mazes have the borders as 1 so we need a further step
 
 
-        # Swap goal and initial position (used in exp3)
-        # if idx % 2 != 0:
-        #     self.init_pos = (self.grid.shape[0] - 2, self.grid.shape[1] - 2)
-        #     self.goal = (1, 1)
+        # Swap goal and initial position (used in exp4)
+        if EXPERIMENT == 4:
+            if idx % 2 != 0:
+                self.init_pos = (self.grid.shape[0] - 2, self.grid.shape[1] - 2)
+                self.goal = (1, 1)
 
         self.grid[self.init_pos] = POS_VAL
         self.grid[self.goal] = GOAL_VAL

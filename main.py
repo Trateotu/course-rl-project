@@ -152,7 +152,7 @@ def main():
 
         #Q_values_mazes[i] = agent.get_Q_grid(maze)
         #np.save('Q_values_retraining_NO_eps_decay.npy', Q_values_mazes)
-
+    ppo_agent.save_model() # Always save final model
     print()
 
 

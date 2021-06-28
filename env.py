@@ -37,6 +37,9 @@ class Simulator:
         self.actual_pos_x = self.init_pos[0]
         self.actual_pos_y = self.init_pos[1]
 
+    def get_state(self):
+        return np.expand_dims(np.expand_dims(self.grid.copy(), 0), 0)
+
     def step(self, a):
         """
         Step function that updates the grid given an action. Fistly updates the position on the grid based on the action

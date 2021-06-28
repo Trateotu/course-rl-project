@@ -4,13 +4,13 @@ from constants import *
 from env import Simulator
 from agent import Net
 from maze_gen import Maze_Gen
+from ppo import PPO
 
-
-def main(mbs, swap_goal, grid_size, model_type):
+def main(mbs, swap_goal, grid_size, model_type, ppo=False):
 
     MAZES_BATCH_SIZE = mbs
     #LOG_DIR = './logs/exp6_mbs='+str(mbs)+"_swap_goal="+str(swap_goal)
-    LOG_DIR = "./logs_grid/swap_goal="+str(swap_goal)+"_grid_size="+str(grid_size)+"_mbs="+str(mbs)+"_model_type="+str(model_type)
+    LOG_DIR = "./logs_grid/swap_goal="+str(swap_goal)+"_grid_size="+str(grid_size)+"_mbs="+str(mbs)+"_model_type="+str(model_type)+"_ppo="+str(ppo)
 
     # # load datasets
     # mazes = np.load('datasets/mazes.npy')
@@ -20,7 +20,10 @@ def main(mbs, swap_goal, grid_size, model_type):
     paths_length = []
     maze_gen = Maze_Gen()
 
-    agent = Net(LOG_DIR, grid_size, model_type).to(device)
+    if ppo:
+        agent = PPO(LOG_DIR, grid_size)
+    else:
+        agent = Net(LOG_DIR, grid_size, model_type).to(device)
     # Q_values_mazes = np.zeros((mazes.shape[0], (GRID_SIZE+2)*3, (GRID_SIZE+2)*3))
 
     # tot_batches = int(len(mazes)/MAZES_BATCH_SIZE)
@@ -42,7 +45,10 @@ def main(mbs, swap_goal, grid_size, model_type):
         T = np.max([(paths_length[q] * HORIZON_MULTIPLIER) for q in range(MAZES_BATCH_SIZE)])
         frqs = np.zeros((MAZES_BATCH_SIZE, grid_size+2, grid_size+2))
 
-        agent.epsilon = agent.epsilon0
+        if ppo:
+            agent.clear_batchdata()
+        else:
+            agent.epsilon = agent.epsilon0
 
         # start training of the maze
         for e in tqdm(range(EPISODES)):
@@ -53,20 +59,27 @@ def main(mbs, swap_goal, grid_size, model_type):
             for i in range(MAZES_BATCH_SIZE):
 
                 sim[i].reset()
-                st = [np.expand_dims(np.expand_dims(sim[i].grid.copy(), 0), 0) for i in range(MAZES_BATCH_SIZE)]
+                st = [sim[i].get_state() for i in range(MAZES_BATCH_SIZE)]
 
 
                 for t in range(T):
                     frqs[i, sim[i].actual_pos_x, sim[i].actual_pos_y] += 1
-                    a = agent.get_action(st[i])
-                    r, done = sim[i].step(a)
 
-                    st1 = np.expand_dims(np.expand_dims(sim[i].grid.copy(), 0), 0)
+                    if ppo:
+                        a, logprob = agent.get_action(st[i])
+                    else:
+                        a = agent.get_action(st[i])
+
+                    r, done = sim[i].step(a)
+                    st1 = sim[i].get_state()
+
+                    if ppo:
+                        agent.push_batchdata(st[i], a, logprob, r, done)
+                    else:
+                        agent.push_memory(st[i], a, r, (not done), st1)
 
                     tot_reward += r
                     final_r = r
-
-                    agent.push_memory(st[i], a, r, (not done), st1)
 
                     if done:
                         break
@@ -74,8 +87,17 @@ def main(mbs, swap_goal, grid_size, model_type):
                     st[i] = st1
 
             # Update the networks
-            agent.update_Q()
-            agent.update_target(e)
+            if ppo:
+                if e % EPISODES_PER_UPDATE == 0:  # TODO or size of batchdata..
+                    agent.update()
+                    agent.clear_batchdata()  # reset the sampled policy trajectories
+                # Save actor critic checkpoints every so often
+                if e % MODEL_SAVE_FREQ == 0 and e > 0:
+                    agent.save_model()
+            else:
+                agent.update_Q()
+                agent.update_target(e)
+
             agent.write_reward(tot_reward/MAZES_BATCH_SIZE, final_r/MAZES_BATCH_SIZE)
 
             # perform a test of the policy where there is no exploration
@@ -86,13 +108,13 @@ def main(mbs, swap_goal, grid_size, model_type):
                 for i in range(MAZES_BATCH_SIZE):
 
                     sim[i].reset()
-                    st = [np.expand_dims(np.expand_dims(sim[i].grid.copy(), 0), 0) for i in range(MAZES_BATCH_SIZE)]
+                    st = [sim[i].get_state() for i in range(MAZES_BATCH_SIZE)]
 
                     for t in range(T):
                         a = agent.get_action(st[i], test=True)
                         r, done = sim[i].step(a)
 
-                        st1 = np.expand_dims(np.expand_dims(sim[i].grid.copy(), 0), 0)
+                        st1 = sim[i].get_state()
 
                         tot_reward += r
 
@@ -128,7 +150,7 @@ def main(mbs, swap_goal, grid_size, model_type):
                     a = agent.get_action(st, test=True)
                     r, done = sim.step(a)
 
-                    st1 = np.expand_dims(np.expand_dims(sim.grid.copy(), 0), 0)
+                    st1 = sim.get_state()
                     tot_reward += r
                     tmp_reward += r
 
@@ -152,4 +174,5 @@ if __name__ == '__main__':
     grid_size = int(sys.argv[2])  # 10  # 20
     model_type = int(sys.argv[3])
     swap_goal = (int(sys.argv[4]) == 1)
-    main(mbs, swap_goal, grid_size, model_type)
+    ppo = (int(sys.argv[5]) == 1)
+    main(mbs, swap_goal, grid_size, model_type, ppo)

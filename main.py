@@ -10,6 +10,9 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
 
     MAZES_BATCH_SIZE = mbs
     #LOG_DIR = './logs/exp6_mbs='+str(mbs)+"_swap_goal="+str(swap_goal)
+    if ppo:
+        INSTANCE_NAME = "swap_goal="+str(swap_goal)+"_grid_size="+str(grid_size)+"_mbs="+str(mbs)+"_model_type="+str(model_type)+"_ppo="+str(ppo)
+        PPO_MODEL_SAVE_DIR = "./ppo_checkpoints/"+INSTANCE_NAME
     LOG_DIR = "./logs_grid/swap_goal="+str(swap_goal)+"_grid_size="+str(grid_size)+"_mbs="+str(mbs)+"_model_type="+str(model_type)+"_ppo="+str(ppo)
 
     # # load datasets
@@ -92,8 +95,8 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
                     agent.update()
                     agent.clear_batchdata()  # reset the sampled policy trajectories
                 # Save actor critic checkpoints every so often
-                if e % MODEL_SAVE_FREQ == 0 and e > 0:
-                    agent.save_model()
+                # if e % MODEL_SAVE_FREQ == 0 and e > 0:
+                #     agent.save_model(epoch+1, e+1, PPO_MODEL_SAVE_DIR)
             else:
                 agent.update_Q()
                 agent.update_target(e)
@@ -132,7 +135,8 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
                 # fig2 = plt.figure()
                 # plt.imshow(grid_frq)
                 # agent.writer.add_figure("Test path", fig2, int(i * 50 + e / 1000))
-
+        if ppo: # save after each epoch
+            agent.save_model(epoch+1, e+1, PPO_MODEL_SAVE_DIR)
         # Once trained in a new maze, test the performances in the previous mazes.
         if epoch > 0:
             tot_reward = 0
@@ -142,7 +146,7 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
                 T = int(paths_length[x] * HORIZON_MULTIPLIER)
 
                 # sim.reset()
-                st = np.expand_dims(np.expand_dims(sim.grid.copy(), 0), 0)
+                st = sim.get_state()
                 tmp_reward = 0
 
                 for t in range(T):
@@ -165,14 +169,23 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
 
         # Q_values_mazes[i] = agent.get_Q_grid(maze)
         # np.save('Q_values_retraining_NO_eps_decay.npy', Q_values_mazes)
-
+    if ppo:
+        agent.save_model(epoch+1,e+1,PPO_MODEL_SAVE_DIR)  # Always save final model for ppo
     print()
 
 
 if __name__ == '__main__':
-    mbs = int(sys.argv[1])
-    grid_size = int(sys.argv[2])  # 10  # 20
-    model_type = int(sys.argv[3])
-    swap_goal = (int(sys.argv[4]) == 1)
-    ppo = (int(sys.argv[5]) == 1)
-    main(mbs, swap_goal, grid_size, model_type, ppo)
+    # mbs = int(sys.argv[1])
+    # grid_size = int(sys.argv[2])  # 10  # 20
+    # model_type = int(sys.argv[3])
+    # swap_goal = (int(sys.argv[4]) == 1)
+    # ppo = (int(sys.argv[5]) == 1)
+
+    maze_batch_sizes = [1] # maze batch size
+    grid_sizes = [10, 15, 20] # square matrices
+    model_type = 0
+    swap_goal = False
+    ppo = True
+for mbs in maze_batch_sizes:
+    for gs in grid_sizes:
+        main(mbs, swap_goal, gs, model_type, ppo)

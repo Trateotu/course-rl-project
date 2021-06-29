@@ -6,7 +6,7 @@ or something along those lines
 from constants import *
 from network import ActorCritic
 from torch.optim import Adam
-
+import os
 
 class BatchData:  # batchdata collected from policy
     def __init__(self):
@@ -118,7 +118,11 @@ class PPO:
         # Replace old policy with new policy
         self.old_policy.load_state_dict(self.policy.state_dict())
 
-    def save_model(self, actor_filepath='./ppo_actor.pth', critic_filepath='./ppo_critic.pth'):  # TODO filename param
+    def save_model(self, epoch, episode, out_dir="./"):  # TODO filename param
+        if not os.path.isdir(out_dir):
+            os.makedirs(out_dir)
+        actor_filepath = os.path.join(out_dir, "ppo_actor_{}_{}.pth".format(epoch,episode))
+        critic_filepath = os.path.join(out_dir,"ppo_critic_{}_{}.pth".format(epoch,episode))
         torch.save(self.policy.actor.state_dict(), actor_filepath)
         torch.save(self.policy.critic.state_dict(), critic_filepath)
 

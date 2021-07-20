@@ -64,8 +64,12 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
                 sim[i].reset()
                 st = [sim[i].get_state() for i in range(MAZES_BATCH_SIZE)]
 
+                if ppo:
+                    ep_t = 0  # episode timestep counter, TODO currently assumes maze batch size of 1
 
                 for t in range(T):
+                    if ppo:
+                        ep_t += 1
                     frqs[i, sim[i].actual_pos_x, sim[i].actual_pos_y] += 1
 
                     if ppo:
@@ -89,9 +93,12 @@ def main(mbs, swap_goal, grid_size, model_type, ppo=False):
 
                     st[i] = st1
 
+                if ppo:
+                    agent.batchdata.ep_lens.append(ep_t)
+
             # Update the networks
             if ppo:
-                if e % EPISODES_PER_UPDATE == 0:  # TODO or size of batchdata..
+                if e % EPISODES_PER_UPDATE == 0 and e > 0:  # TODO or size of batchdata..
                     agent.update()
                     agent.clear_batchdata()  # reset the sampled policy trajectories
                 # Save actor critic checkpoints every so often

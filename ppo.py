@@ -1,7 +1,11 @@
 """
-Implements PPO-Clip-esk:
-https://spinningup.openai.com/en/latest/_images/math/e62a8971472597f4b014c2da064f636ffe365ba3.svg
-or something along those lines
+Implements PPO:
+
+Implementation details:
+    - Monte-Carlo advantage estimation
+    - Value function fit by regression on mean-squared error
+    - Single worker implementation
+
 """
 from constants import *
 from network import ActorCritic
@@ -14,7 +18,7 @@ class BatchData:  # batchdata collected from policy
         self.actions = []
         self.logprobs = []  # log probs of each action
         self.rewards = []
-        self.lens = []  # episodic lengths in batch, (dim=n_episodes)
+        self.ep_lens = []  # episodic lengths in batch, (dim=n_episodes)
         self.is_terminal = []  # whether or not terminal state was reached
 
     def clear(self):
@@ -22,19 +26,26 @@ class BatchData:  # batchdata collected from policy
         self.actions.clear()
         self.logprobs.clear()
         self.rewards.clear()
-        self.lens.clear()
+        self.ep_lens.clear()
         self.is_terminal.clear()
 
-def calc_rtg(rewards, is_terminal, gamma):
-    # Calculates reward-to-go
-    assert len(rewards) == len(is_terminal)
+def calc_rtg(rewards, ep_lens, gamma):
+    # Calculates reward-to-go per episode
+    #assert len(rewards) == len(is_terminal)
     rtgs = []
     discounted_reward = 0
-    for reward, is_terminal in zip(reversed(rewards), reversed(is_terminal)):
-        if is_terminal:
+
+    # for tracking episodes lengths
+    ep_idx = 1
+    count = 0
+    for reward in reversed(rewards):
+        if count == ep_lens[-ep_idx]:
+            ep_idx += 1
+            count = 0
             discounted_reward = 0
         discounted_reward = reward + gamma * discounted_reward
         rtgs.insert(0, discounted_reward)
+        count += 1
     return rtgs
 
 class PPO:
@@ -79,7 +90,7 @@ class PPO:
         """
             Updates the actor-critic networks for current batch data
         """
-        rtgs = self.to_tensor(calc_rtg(self.batchdata.rewards,self.batchdata.is_terminal,self.gamma))  # reward-to-go
+        rtgs = self.to_tensor(calc_rtg(self.batchdata.rewards, self.batchdata.ep_lens, self.gamma))  # reward-to-go
         # Normalize rewards
         rtgs = (rtgs - rtgs.mean()) / (rtgs.std() + 1e-5)
 
@@ -149,6 +160,9 @@ class PPO:
 
     def clear_batchdata(self):
         self.batchdata.clear()
+
+    def get_batchsize(self):
+        return len(self.batchdata.states)
 
     def to_tensor(self, array):
         if isinstance(array, np.ndarray):

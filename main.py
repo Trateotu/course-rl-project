@@ -70,13 +70,13 @@ def main():
                 st = st1
 
             # Store episodic batchdata
-            ppo_agent.batchdata.lens.append(ep_t + 1)
+            ppo_agent.batchdata.ep_lens.append(ep_t)
 
             # Update the networks
             #agent.update_Q()
             #agent.update_target(e, sim.grid.copy())
             #agent.write_reward(tot_reward, final_r)
-            if e % EPISODES_PER_UPDATE == 0: # TODO or size of batchdata..
+            if e % EPISODES_PER_UPDATE == 0 and e > 0: # TODO or size of batchdata..
                 ppo_agent.update()
                 ppo_agent.clear_batchdata()  # reset the sampled policy trajectories
 
